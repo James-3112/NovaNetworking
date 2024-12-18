@@ -10,9 +10,6 @@ namespace NovaNetworking {
 
 
         public override void ConnectToServer(string ip, int port) {
-            // Invokes the OnConnected event
-            base.ConnectToServer(ip, port);
-
             endPoint = new IPEndPoint(IPAddress.Parse(ip), port);
             udpClient = new UdpClient();
 
@@ -24,11 +21,8 @@ namespace NovaNetworking {
         }
 
 
-        public override void ConnectToClient(object client) {
-            // Invokes the OnConnected event
-            base.ConnectToClient(client);
-
-            endPoint = client as IPEndPoint;
+        public override void ConnectToClient(object socket) {
+            endPoint = socket as IPEndPoint;
             
             if (endPoint == null) {
                 Debug.LogError("Invalid client type for IPEndPoint");
@@ -77,7 +71,6 @@ namespace NovaNetworking {
 
 
         public override void Disconnect() {
-            // Invokes the OnDisconnect event
             base.Disconnect();
 
             if (udpClient != null) udpClient.Close();

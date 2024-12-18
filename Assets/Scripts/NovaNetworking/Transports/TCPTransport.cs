@@ -7,20 +7,12 @@ namespace NovaNetworking {
         public TcpClient tcpClient;
         private NetworkStream stream;
 
-        private int dataBufferSize;
+        private int dataBufferSize = 4096;
         private Message receivedData;
         private byte[] receiveBuffer;
 
 
-        public TCPTransport(int dataBufferSize) {
-            this.dataBufferSize = dataBufferSize;
-        }
-
-
         public override void ConnectToServer(string ip, int port) {
-            // Invokes the OnConnected event
-            base.ConnectToServer(ip, port);
-
             tcpClient = new TcpClient {
                 ReceiveBufferSize = dataBufferSize,
                 SendBufferSize = dataBufferSize
@@ -43,9 +35,6 @@ namespace NovaNetworking {
 
 
         public override void ConnectToClient(object client) {
-            // Invokes the OnConnected event
-            base.ConnectToClient(client);
-
             tcpClient = client as TcpClient;
             
             if (tcpClient == null) {
@@ -127,7 +116,6 @@ namespace NovaNetworking {
 
 
         public override void Disconnect() {
-            // Invokes the OnDisconnect event
             base.Disconnect();
 
             if (tcpClient != null) tcpClient.Close();

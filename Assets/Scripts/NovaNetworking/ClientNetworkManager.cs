@@ -13,21 +13,21 @@ namespace NovaNetworking {
 
         private static Client client = new Client();
 
-        public delegate void PacketHandler(Packet packet);
-        public Dictionary<int, PacketHandler> packetHandlers = new Dictionary<int, PacketHandler>();
+        public delegate void MessageHandler(Message message);
+        public Dictionary<int, MessageHandler> messageHandlers = new Dictionary<int, MessageHandler>();
 
 
         private void Start() {
             GetPacketHandlers();
 
-            client.OnDataReceived += HandleData;
-            client.OnDisconnected += Disconnected;
-            client.ConnectToServer(ip, port);
+            client.transport.OnDataReceived += HandleData;
+            client.transport.OnDisconnected += Disconnected;
+            client.transport.ConnectToServer(ip, port);
         }
 
 
         private void OnApplicationQuit() {
-            client.Disconnect();
+            client.transport.Disconnect();
         }
 
 
@@ -41,44 +41,54 @@ namespace NovaNetworking {
 
             foreach (MethodInfo method in methods) {
                 ClientReceiveAttribute attribute = method.GetCustomAttribute<ClientReceiveAttribute>();
-                Delegate serverMessageHandler = Delegate.CreateDelegate(typeof(PacketHandler), method, false);
+                Delegate serverMessageHandler = Delegate.CreateDelegate(typeof(MessageHandler), method, false);
 
-                packetHandlers.Add(attribute.packetId, (PacketHandler)serverMessageHandler);
+                messageHandlers.Add(attribute.packetId, (MessageHandler)serverMessageHandler);
             }
         }
         
 
-        private void Disconnected(int clientId) {
+        private void Disconnected() {
             Debug.Log($"Client has disconnected");
         }
 
 
         // Receiving
-        private void HandleData(int clientId, byte[] packetBytes) {
-            using (Packet packet = new Packet(packetBytes)) {
-                int packetId = packet.ReadInt();
-                packetHandlers[packetId](packet);
-            }
+        private void HandleData(byte[] packetBytes) {
+            Message message = new Message(packetBytes);
+            int packetId = message.ReadInt();
+            messageHandlers[packetId](message);
         }
 
 
         [ClientReceive(ServerToClientPackets.welcome)]
-        private static void Connected(Packet packet) {
+        private static void Connected(Message packet) {
             Debug.Log($"Client has connected");
             client.id = packet.ReadInt();
 
-            // Send welcome received packet to the server and connect udp
             SendWelcomeReceived();
-            client.udpConnection.ConnectToServer(ip, port);
+        }
+
+
+        [ClientReceive(ServerToClientPackets.clientConnected)]
+        private static void ClientConnected(Message packet) {
+            int clientId = packet.ReadInt();
+            Debug.Log($"Client ({clientId}) has connected");
+        }
+
+
+        [ClientReceive(ServerToClientPackets.clientDisconnected)]
+        private static void ClientDisconnected(Message packet) {
+            int clientId = packet.ReadInt();
+            Debug.Log($"Client ({clientId}) has disconnected");
         }
 
 
         // Sending
         private static void SendWelcomeReceived() {
-            using (Packet packet = new Packet((int)ClientToServerPackets.welcomeReceived)) {
-                packet.Write(client.id);
-                client.SendTCPData(packet);
-            }
+            Message message = new Message((int)ClientToServerPackets.welcomeReceived);
+            message.Write(client.id);
+            client.Send(message);
         }
     }
 }
