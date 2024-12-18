@@ -56,6 +56,17 @@ namespace NovaNetworking {
         public int UnreadLength() {
             return Length() - readPos;
         }
+
+        public void Reset(bool shouldReset = true) {
+            if (shouldReset) {
+                buffer.Clear();
+                readableBuffer = null;
+                readPos = 0;
+            }
+            else {
+                readPos -= 4;
+            }
+        }
         #endregion
 
 

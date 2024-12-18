@@ -8,7 +8,7 @@ namespace NovaNetworking {
         private NetworkStream stream;
 
         private int dataBufferSize;
-        private Packet receivedData;
+        private Message receivedData;
         private byte[] receiveBuffer;
 
 
@@ -27,7 +27,7 @@ namespace NovaNetworking {
             };
 
             receiveBuffer = new byte[dataBufferSize];
-            receivedData = new Packet();
+            receivedData = new Message();
 
             tcpClient.BeginConnect(ip, port, ConnectCallback, tcpClient);
         }
@@ -56,7 +56,7 @@ namespace NovaNetworking {
             tcpClient.ReceiveBufferSize = dataBufferSize;
             tcpClient.SendBufferSize = dataBufferSize;
 
-            receivedData = new Packet();
+            receivedData = new Message();
             receiveBuffer = new byte[dataBufferSize];
 
             stream = tcpClient.GetStream();
@@ -89,35 +89,35 @@ namespace NovaNetworking {
 
 
         private bool HandleData(byte[] data) {
-            int packetLength = 0;
+            int messageLength = 0;
 
             receivedData.SetBytes(data);
 
             if (receivedData.UnreadLength() >= 4) {
-                packetLength = receivedData.ReadInt();
-                if (packetLength <= 0) return true;
+                messageLength = receivedData.ReadInt();
+                if (messageLength <= 0) return true;
             }
 
-            while (packetLength > 0 && packetLength <= receivedData.UnreadLength()) {
-                DataReceived(receivedData.ReadBytes(packetLength));
+            while (messageLength > 0 && messageLength <= receivedData.UnreadLength()) {
+                DataReceived(receivedData.ReadBytes(messageLength));
 
-                packetLength = 0;
+                messageLength = 0;
                 if (receivedData.UnreadLength() >= 4) {
-                    packetLength = receivedData.ReadInt();
+                    messageLength = receivedData.ReadInt();
 
-                    if (packetLength <= 0) return true;
+                    if (messageLength <= 0) return true;
                 }
             }
 
-            if (packetLength <= 1) return true;
+            if (messageLength <= 1) return true;
             return false;
         }
 
 
-        public override void Send(Message packet) {
+        public override void Send(Message message) {
             try {
                 if (tcpClient != null) {
-                    stream.BeginWrite(packet.ToArray(), 0, packet.Length(), null, null);
+                    stream.BeginWrite(message.ToArray(), 0, message.Length(), null, null);
                 }
             }
             catch (Exception ex) {

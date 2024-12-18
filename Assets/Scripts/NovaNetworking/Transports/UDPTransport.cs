@@ -56,19 +56,18 @@ namespace NovaNetworking {
 
 
         public void HandleData(byte[] data) {
-            using (Packet packet = new Packet(data)) {
-                int packetLength = packet.ReadInt();
-                data = packet.ReadBytes(packetLength);
-            }
+            Message message = new Message(data);
+            int messageLength = message.ReadInt();
+            data = message.ReadBytes(messageLength);
 
             DataReceived(data);
         }
 
 
-        public override void Send(Message packet) {
+        public override void Send(Message message) {
             try {
                 if (udpClient != null) {
-                    udpClient.BeginSend(packet.ToArray(), packet.Length(), null, null);
+                    udpClient.BeginSend(message.ToArray(), message.Length(), null, null);
                 }
             }
             catch (Exception ex) {
