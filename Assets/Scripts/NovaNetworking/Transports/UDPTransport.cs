@@ -60,6 +60,8 @@ namespace NovaNetworking {
 
         public override void Send(Message message) {
             try {
+                message.WriteLength();
+
                 if (udpClient != null) {
                     udpClient.BeginSend(message.ToArray(), message.Length(), null, null);
                 }

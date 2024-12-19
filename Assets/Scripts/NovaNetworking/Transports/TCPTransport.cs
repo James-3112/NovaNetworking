@@ -105,6 +105,8 @@ namespace NovaNetworking {
 
         public override void Send(Message message) {
             try {
+                message.WriteLength();
+
                 if (tcpClient != null) {
                     stream.BeginWrite(message.ToArray(), 0, message.Length(), null, null);
                 }

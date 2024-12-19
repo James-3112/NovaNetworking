@@ -59,8 +59,12 @@ namespace NovaNetworking {
             Debug.Log($"Client has disconnected");
         }
 
+        public static void Send(Message message) {
+            client.transport.Send(message);
+        }
 
-        // Receiving
+
+        #region Receiving
         [ClientReceive(ServerToClientMessages.welcome)]
         private static void Connected(Message message) {
             Debug.Log($"Client has connected");
@@ -82,13 +86,16 @@ namespace NovaNetworking {
             int clientId = message.ReadInt();
             Debug.Log($"Client ({clientId}) has disconnected");
         }
+        #endregion
 
 
-        // Sending
+        #region Sending
         private static void SendWelcomeReceived() {
             Message message = new Message((int)ClientToServerMessages.welcomeReceived);
             message.Write(client.id);
-            client.Send(message);
+            
+            Send(message);
         }
+        #endregion
     }
 }
