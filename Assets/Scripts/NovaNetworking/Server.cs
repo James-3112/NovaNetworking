@@ -18,9 +18,9 @@ namespace NovaNetworking {
         public event Action<int> OnClientDisconnected;
         public event Action<int, byte[]> OnDataReceived;
 
+        private Transport transport = new UDPTransport();
 
         private TcpListener tcpListener;
-        private UdpClient udpListener;
 
 
         public void Start(int maxClients, int port) {
@@ -29,13 +29,14 @@ namespace NovaNetworking {
 
             Debug.Log("Starting server");
 
-            for (int i = 1; i <= maxClients; i++) {
-                Client client = new Client(i);
-                client.OnConnected += ClientConnected;
-                client.OnDisconnected += ClientDisconnected;
-                client.OnDataReceived += DataReceived;
+            for (int id = 1; id <= maxClients; id++) {
+                Client client = new Client(OnDataReceived, OnClientDisconnected);
+                client.transport.OnConnected += () => OnConnected(client.id);
+                client.transport.OnDisconnected += () => OnDisconnected(client.id);
+                client.transport.OnDataReceived += (data) => OnDataReceived(client.id, data);
+                client.id = id;
 
-                clients.Add(i, client);
+                clients.Add(id, client);
             }
 
             tcpListener = new TcpListener(IPAddress.Any, port);
@@ -93,62 +94,6 @@ namespace NovaNetworking {
             }
         }
 
-
-        private void UDPReceiveCallback(IAsyncResult result) {
-            if (!udpListener.Client.IsBound) {
-                return;
-            }
-
-            try {
-                IPEndPoint clientEndPoint = new IPEndPoint(IPAddress.Any, 0);
-                byte[] data = udpListener.EndReceive(result, ref clientEndPoint);
-                udpListener.BeginReceive(UDPReceiveCallback, null);
-
-                if (data.Length < 4) {
-                    return;
-                }
-
-                using (Packet packet = new Packet(data)) {
-                    int clientId = packet.ReadInt();
-                
-                    if (clientId == 0) {
-                        return;
-                    }
-
-                    UDPConnection udpConnection = clients[clientId].udpConnection as UDPConnection;
-
-                    if (udpConnection == null) {
-                        Debug.LogError("Invalid connection type for UDPConnection");
-                        return;
-                    }
-
-                    if (udpConnection.endPoint == null) {
-                        udpConnection.ConnectToClient(clientEndPoint);
-                        return;
-                    }
-
-                    if (udpConnection.endPoint.ToString() == clientEndPoint.ToString()) {
-                        udpConnection.HandleData(data);
-                    }
-                }
-            }
-            catch (Exception ex) {
-                Debug.Log($"Error receiving UDP connection: {ex}");
-            }
-        }
-    
-
-        private void ClientConnected(int clientId) {
-            OnClientConnected?.Invoke(clientId);
-        }
-
-        private void ClientDisconnected(int clientId) {
-            OnClientDisconnected?.Invoke(clientId);
-        }
-
-        private void DataReceived(int clientId, byte[] data) {
-            OnDataReceived?.Invoke(clientId, data);
-        }
 
 
         #region Send Methods

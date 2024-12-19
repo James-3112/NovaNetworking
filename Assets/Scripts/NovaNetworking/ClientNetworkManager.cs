@@ -11,7 +11,7 @@ namespace NovaNetworking {
         [SerializeField] string ip = "127.0.0.1";
         [SerializeField] int port = 7777;
 
-        private static Client client = new Client();
+        private static Client client;
 
         public delegate void MessageHandler(Message message);
         public Dictionary<int, MessageHandler> messageHandlers = new Dictionary<int, MessageHandler>();
@@ -19,10 +19,12 @@ namespace NovaNetworking {
 
         private void Start() {
             GetPacketHandlers();
-
-            client.transport.OnDataReceived += HandleData;
-            client.transport.OnDisconnected += Disconnected;
-            client.transport.ConnectToServer(ip, port);
+    
+            client = new Client();
+            client.transport.OnConnected += OnConnected;
+            client.transport.OnDisconnected += OnDisconnected;
+            client.transport.OnDataReceived += OnDataReceived;
+            client.transport.Connect(ip, port);
         }
 
 
@@ -48,28 +50,34 @@ namespace NovaNetworking {
         }
 
 
-        private void HandleData(byte[] messageBytes) {
-            Message message = new Message(messageBytes);
-            int messageId = message.ReadInt();
-            messageHandlers[messageId](message);
-        }
-        
-
-        private void Disconnected() {
-            Debug.Log($"Client has disconnected");
-        }
-
         public static void Send(Message message) {
             client.transport.Send(message);
         }
 
 
+        #region Events
+        private void OnConnected() {
+            Debug.Log($"Client has connected");
+        }
+
+
+        private void OnDisconnected() {
+            Debug.Log($"Client has disconnected");
+        }
+
+
+        private void OnDataReceived(byte[] messageBytes) {
+            Message message = new Message(messageBytes);
+            int messageId = message.ReadInt();
+            messageHandlers[messageId](message);
+        }
+        #endregion
+
+
         #region Receiving
         [ClientReceive(ServerToClientMessages.welcome)]
         private static void Connected(Message message) {
-            Debug.Log($"Client has connected");
             client.id = message.ReadInt();
-
             SendWelcomeReceived();
         }
 
