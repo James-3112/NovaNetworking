@@ -8,8 +8,8 @@ using UnityEngine;
 
 namespace NovaNetworking {
     public class ClientNetworkManager : MonoBehaviour {
-        [SerializeField] static string ip = "127.0.0.1";
-        [SerializeField] static int port = 7777;
+        [SerializeField] string ip = "127.0.0.1";
+        [SerializeField] int port = 7777;
 
         private static Client client = new Client();
 
@@ -43,8 +43,15 @@ namespace NovaNetworking {
                 ClientReceiveAttribute attribute = method.GetCustomAttribute<ClientReceiveAttribute>();
                 Delegate serverMessageHandler = Delegate.CreateDelegate(typeof(MessageHandler), method, false);
 
-                messageHandlers.Add(attribute.packetId, (MessageHandler)serverMessageHandler);
+                messageHandlers.Add(attribute.messageId, (MessageHandler)serverMessageHandler);
             }
+        }
+
+
+        private void HandleData(byte[] messageBytes) {
+            Message message = new Message(messageBytes);
+            int messageId = message.ReadInt();
+            messageHandlers[messageId](message);
         }
         
 
@@ -54,39 +61,32 @@ namespace NovaNetworking {
 
 
         // Receiving
-        private void HandleData(byte[] packetBytes) {
-            Message message = new Message(packetBytes);
-            int packetId = message.ReadInt();
-            messageHandlers[packetId](message);
-        }
-
-
-        [ClientReceive(ServerToClientPackets.welcome)]
-        private static void Connected(Message packet) {
+        [ClientReceive(ServerToClientMessages.welcome)]
+        private static void Connected(Message message) {
             Debug.Log($"Client has connected");
-            client.id = packet.ReadInt();
+            client.id = message.ReadInt();
 
             SendWelcomeReceived();
         }
 
 
-        [ClientReceive(ServerToClientPackets.clientConnected)]
-        private static void ClientConnected(Message packet) {
-            int clientId = packet.ReadInt();
+        [ClientReceive(ServerToClientMessages.clientConnected)]
+        private static void ClientConnected(Message message) {
+            int clientId = message.ReadInt();
             Debug.Log($"Client ({clientId}) has connected");
         }
 
 
-        [ClientReceive(ServerToClientPackets.clientDisconnected)]
-        private static void ClientDisconnected(Message packet) {
-            int clientId = packet.ReadInt();
+        [ClientReceive(ServerToClientMessages.clientDisconnected)]
+        private static void ClientDisconnected(Message message) {
+            int clientId = message.ReadInt();
             Debug.Log($"Client ({clientId}) has disconnected");
         }
 
 
         // Sending
         private static void SendWelcomeReceived() {
-            Message message = new Message((int)ClientToServerPackets.welcomeReceived);
+            Message message = new Message((int)ClientToServerMessages.welcomeReceived);
             message.Write(client.id);
             client.Send(message);
         }
