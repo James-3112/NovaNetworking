@@ -30,32 +30,32 @@ namespace NovaNetworking {
             Debug.Log("Starting server");
 
             for (int id = 1; id <= maxClients; id++) {
-                Client client = new Client(OnDataReceived, OnClientDisconnected);
-                client.transport.OnConnected += () => OnConnected(client.id);
-                client.transport.OnDisconnected += () => OnDisconnected(client.id);
+                Client client = new Client();
+                client.transport.OnClientConnected += () => OnClientConnected(client.id);
+                client.transport.OnDisconnected += () => OnClientDisconnected(client.id);
                 client.transport.OnDataReceived += (data) => OnDataReceived(client.id, data);
                 client.id = id;
 
                 clients.Add(id, client);
             }
 
-            tcpListener = new TcpListener(IPAddress.Any, port);
-            tcpListener.Start();
-            tcpListener.BeginAcceptTcpClient(TCPConnectCallback, null);
+            // tcpListener = new TcpListener(IPAddress.Any, port);
+            // tcpListener.Start();
+            // tcpListener.BeginAcceptTcpClient(TCPConnectCallback, null);
 
-            udpListener = new UdpClient(port);
-            udpListener.BeginReceive(UDPReceiveCallback, null);
+            transport.StartReceiving(port);
 
             Debug.Log($"Server started on port {port}");
         }
 
 
         public void Stop() {
-            tcpListener.Stop();
-            udpListener.Close();
+            // tcpListener.Stop();
+
+            transport.StopReceiving();
 
             for (int i = 1; i <= maxClients; i++) {
-                clients[i].Disconnect();
+                clients[i].transport.Disconnect();
             }
 
             Debug.Log("Server has stopped");

@@ -16,6 +16,10 @@ namespace NovaNetworking {
             udpListener.BeginReceive(ReceiveCallback, null);
         }
 
+        public override void StopReceiving() {
+            udpListener.Close();
+        }
+
         private void ReceiveCallback(IAsyncResult result) {
             if (!udpListener.Client.IsBound) {
                 return;
@@ -61,7 +65,7 @@ namespace NovaNetworking {
             Message message = new Message();
             Send(message);
 
-            base.Connect();
+            base.Connect(ip, port);
         }
 
 

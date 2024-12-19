@@ -7,20 +7,27 @@ namespace NovaNetworking {
         public event Action OnDisconnected;
         public event Action<byte[]> OnDataReceived;
 
-        public virtual void StartReceiving(int port) {}
-        public virtual void Connect(string ip, int port) {}
-        public virtual void Send(Message packet) {}
-        
-        public void DataReceived(byte[] data) {
-            OnDataReceived?.Invoke(data);
-        }
 
-        public virtual void Connect() {
-            OnConnected?.Invoke();
-        }
+        // Server
+        public virtual void StartReceiving(int port) {}
+        public virtual void StopReceiving() {}
 
         public void ClientConnected() {
             OnClientConnected?.Invoke();
+        }
+
+
+        // Client
+        public virtual void Connect(string ip, int port) {
+            OnConnected?.Invoke();
+        }
+
+        public virtual void Send(Message packet) {}
+        
+
+        // General
+        public void DataReceived(byte[] data) {
+            OnDataReceived?.Invoke(data);
         }
 
         public virtual void Disconnect() {
